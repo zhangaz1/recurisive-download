@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+	<script src="./../node_modules/ramda/dist/ramda.js"></script>
+	<script src="./../node_modules/axios/dist/axios.js"></script>
+	<script src="./../node_modules/jquery/dist/jquery.js"></script>
+	<script>
+		$(function() {
+			$('#pages').click(renderPages);
+
+			return void (0);
+
+			function getBase(seed) {
+				return seed.replace(/(\/\w+)*\/?$/ig, '');
+			}
+
+			async function renderPages(e) {
+				const seed = $('#seed').val();
+
+				$(e.target).hide();
+
+				return await axios.get(seed)
+					.then(ctx => (ctx.$$ = $(ctx.data), ctx))
+					.then(ctx => (ctx.base = getBase(seed), ctx))
+					.then(parseTotal)
+					.then(addPageBtns);
+			}
+
+			function addPageBtns(ctx) {
+				R.pipe(
+					R.partial(R.range, [1]),
+					R.map(n => $(`<button value="${n}">${n}</button>`)),
+					btns => $('#pageBtns').append(btns),
+					pageBtns => pageBtns.children()
+						.click(e => {
+							$(e.target).hide();
+							openPage(e.target.value, ctx);
+						}),
+				)(ctx.total);
+
+				return ctx;
+			}
+
+			async function openPage(pageIndex, ctx) {
+				const url = `${ctx.config.url}index${pageIndex === '1' ? '' : '-' + pageIndex}.html`;
+				return await axios.get(url)
+					.then(ctx => $(ctx.data).find('div.classList>ul>li'))
+					.then(replaceAHref)
+					.then(links => links.appendTo($('#pageList')))
+					.then(links => links.find('a'))
+					.then(
+						alinks => alinks.one('click', e => {
+							loadImages(e.target.data, ctx.base);
+							$('<button>X</button>')
+								.insertAfter($(e.target))
+								.one('click', () => $(e.target).prev().remove());
+						})
+					);
+			}
+
+			function replaceAHref(links) {
+				links.find('a')
+					.each((i, a) => {
+						const src = $(a).attr('href');
+						a.href = '#' + src;
+						a.data = src;
+					});
+				return links;
+			}
+
+			async function loadImages(url, base) {
+				const src = base + url;
+				return await axios.get(src)
+					.then(ctx => ctx.data)
+					.then(doc => $('div.contentList>div.content>p>img', doc))
+					.then(imgs => $(`<p id="${url}"></p>`).append(imgs))
+					.then(imgsP => $(`li>a[href="#${url}"]`).before(imgsP));
+			}
+
+
+			function parseTotal(ctx) {
+				ctx.total = parseInt(
+					ctx.$$.find('div.pageList')
+						.text()
+						.match(/\d\/(?<total>\d+)/)
+						.groups
+						.total
+				);
+
+				return ctx;
+			}
+		});
+	</script>
+</head>
+
+<body>
+	<div>
+		<p>
+			<input id="seed" style="width:100%;" type="text" value="">
+			<button id="pages">pages</button>
+
+		</p>
+		<p id="imgs"></p>
+		<p id="pageList"></p>
+
+		<p id="pageBtns"></p>
+	</div>
+</body>
+
+</html>

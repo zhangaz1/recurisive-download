@@ -5,15 +5,21 @@ const $ = require('cheerio');
 const axios = require('axios');
 const request = require('request');
 
-const entery = 'http://www.baidu.com';
+const entery = '';
 
 // run(entery);
+
+let imgs = [];
 
 run2();
 
 async function run2() {
+	console.clear();
 	const result = await getLoader(entery);
-	console.log(result);
+
+	return await fs.promises
+		.writeFile('imgs/srcs.json', JSON.stringify(result))
+		.then(() => console.log('success'));
 }
 
 async function getLoader(src) {
@@ -29,12 +35,15 @@ async function getLoader(src) {
 				R.pipeP(
 					load,
 					parseUrl2,
-					R.map(
-						loadImage,
-					),
+					// R.map(
+					// 	loadImage,
+					// ),
 				),
 			)
 		),
+		Promise.all.bind(Promise),
+		R.flatten,
+		R.sort((a, b) => a > b ? 1 : -1),
 	)(src);
 }
 

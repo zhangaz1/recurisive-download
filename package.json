@@ -19,6 +19,7 @@
 	"dependencies": {
 		"axios": "^0.19.2",
 		"cheerio": "^1.0.0-rc.3",
+		"jquery": "^3.5.1",
 		"ramda": "^0.27.1",
 		"request": "^2.88.2",
 		"url": "^0.11.0"
